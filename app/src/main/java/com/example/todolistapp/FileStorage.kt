@@ -2,12 +2,13 @@ package com.example.todolistapp
 
 import android.content.Context
 import org.json.JSONArray
-import java.io.File
+
 
 class FileStorage(context: Context) {
     private val _todoItems = mutableListOf<TodoItem>()
-    val todoItems: List<TodoItem> get() = _todoItems
-    private val file = File(context.filesDir, "todos.json")
+    val todoItems: List<TodoItem> get() = _todoItems.toList()
+    private val file = context.getSharedPreferences("todos", Context.MODE_PRIVATE)
+    private val key = "todo_items"
 
     fun addNewTodo(todoItem: TodoItem) {
         _todoItems.add(todoItem)
@@ -20,29 +21,23 @@ class FileStorage(context: Context) {
     }
 
     fun saveTodosToFile() {
-        val jsonArray = JSONArray()
-        for (item in _todoItems) {
-            jsonArray.put(item.json)
+        val jsonArray = JSONArray().apply{
+            _todoItems.forEach { put(it.json) }
         }
-        file.writeText(jsonArray.toString())
+        file.edit().putString(key, jsonArray.toString()).apply()
     }
 
     fun loadTodosFromFile() {
-        if (!file.exists()) {
-            return
-        }
-        val jsonString = file.readText()
+        val jsonString = file.getString(key, "[]")
         val jsonArray = JSONArray(jsonString)
+
         _todoItems.clear()
 
-        for (i in 0 until jsonArray.length()) {
-            val jsonObject = jsonArray.getJSONObject(i)
-            val todoItem = parse(jsonObject)
-
-            if (todoItem != null) {
-                _todoItems.add(todoItem)
+        val list = (0 until jsonArray.length())
+            .mapNotNull { jsonItem ->
+                val jsonObject = jsonArray.getJSONObject(jsonItem)
+                jsonObject.parse()
             }
-        }
-
+        _todoItems.addAll(list)
     }
 }
