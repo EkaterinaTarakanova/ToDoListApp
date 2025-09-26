@@ -1,8 +1,10 @@
 package com.example.todolistapp
 
 import android.content.Context
+import org.joda.time.DateTime
 import org.json.JSONArray
 
+const val TIME_TO_DELETE_OVERDUE = 7
 
 class FileStorage(context: Context) {
     private val _todoItems = mutableListOf<TodoItem>()
@@ -21,7 +23,7 @@ class FileStorage(context: Context) {
     }
 
     fun saveTodosToFile() {
-        val jsonArray = JSONArray().apply{
+        val jsonArray = JSONArray().apply {
             _todoItems.forEach { put(it.json) }
         }
         file.edit().putString(key, jsonArray.toString()).apply()
@@ -39,5 +41,12 @@ class FileStorage(context: Context) {
                 jsonObject.parse()
             }
         _todoItems.addAll(list)
+        deletingOverdueTasks(TIME_TO_DELETE_OVERDUE)
+    }
+
+    fun deletingOverdueTasks(days: Int) {
+        _todoItems.removeAll { todoItem ->
+            todoItem.deadline?.plusDays(days)?.let { it < DateTime.now() } ?: false
+        }
     }
 }
